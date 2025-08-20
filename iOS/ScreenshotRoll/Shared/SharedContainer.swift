@@ -1,0 +1,50 @@
+import Foundation
+
+enum SharedContainer {
+    // Replace with your real App Group identifier in Xcode capabilities
+    static let sharedAppGroupId: String = "group.com.yourcompany.screenshotroll"
+
+    static func appGroupURL() -> URL {
+        guard let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: sharedAppGroupId) else {
+            fatalError("App Group container missing. Check capabilities and identifier.")
+        }
+        return url
+    }
+
+    static func sharedInboxURL() -> URL {
+        let url = appGroupURL().appendingPathComponent("SharedInbox", isDirectory: true)
+        ensureDirectory(url)
+        return url
+    }
+
+    static func databaseURL() -> URL {
+        // Keep DB in app sandbox Application Support by default
+        let base = appSupportURL()
+        let url = base.appendingPathComponent("screenshot_roll.sqlite")
+        return url
+    }
+
+    static func assetsDirectoryURL() -> URL {
+        let base = appSupportURL()
+        let dir = base.appendingPathComponent("Assets", isDirectory: true)
+        ensureDirectory(dir)
+        return dir
+    }
+
+    static func appSupportURL() -> URL {
+        let urls = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        let base = urls[0].appendingPathComponent("ScreenshotRoll", isDirectory: true)
+        ensureDirectory(base)
+        return base
+    }
+
+    private static func ensureDirectory(_ url: URL) {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: url.path) {
+            try? fm.createDirectory(at: url, withIntermediateDirectories: true, attributes: [
+                FileAttributeKey.protectionKey: FileProtectionType.complete
+            ])
+        }
+    }
+}
+
