@@ -12,7 +12,7 @@ final class TickerService {
     private func loadWhitelist() {
         if let dataAsset = NSDataAsset(name: "whitelist") {
             if let dataString = String(data: dataAsset.data, encoding: .utf8) {
-                let items = dataString.split(whereSeparator: \.isNewline).map { String($0).trimmingCharacters(in: .whitespacesAndNewlines).uppercased() }.filter { !$0.isEmpty }
+                let items = dataString.split { $0.isNewline }.map { String($0).trimmingCharacters(in: .whitespacesAndNewlines).uppercased() }.filter { !$0.isEmpty }
                 whitelist = Set(items)
                 return
             }
