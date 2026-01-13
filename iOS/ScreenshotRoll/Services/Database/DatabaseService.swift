@@ -1,6 +1,11 @@
 import Foundation
 import SQLite3
 
+// MARK: - SQLite Helpers
+
+// SQLITE_TRANSIENT tells SQLite to make its own copy of the string data
+private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+
 // MARK: - Constants
 
 enum DatabaseConstants {
