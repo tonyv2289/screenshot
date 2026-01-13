@@ -65,8 +65,7 @@ final class DatabaseService {
 
         let createFTS = """
         CREATE VIRTUAL TABLE IF NOT EXISTS ocr_fts USING fts5(
-            text, tags, asset_id UNINDEXED,
-            tokenize = 'unicode61 remove_diacritics 2 tokenchars "$_"'
+            text, tags, asset_id UNINDEXED
         );
         """
 
