@@ -10,42 +10,42 @@ final class KnowledgeGraphService {
     /// Automatically creates links between the new asset and existing assets based on shared entities
     func buildLinks(forAssetId assetId: Int64, entities: [ExtractedEntity]) {
         // Link by shared usernames (same author)
-        let usernames = entities.filter { $0.type == .username }
+        let usernames = entities.filter { $0.type == EntityType.username }
         for username in usernames {
-            let relatedAssets = DatabaseService.shared.findAssets(withEntityType: .username, value: username.value)
+            let relatedAssets = DatabaseService.shared.findAssets(withEntityType: EntityType.username, value: username.value)
             for relatedId in relatedAssets where relatedId != assetId {
                 DatabaseService.shared.insertLink(
                     source: assetId,
                     target: relatedId,
-                    type: .sameAuthor,
+                    type: RelationshipType.sameAuthor,
                     strength: 0.8
                 )
             }
         }
 
         // Link by shared topics
-        let topics = entities.filter { $0.type == .topic }
+        let topics = entities.filter { $0.type == EntityType.topic }
         for topic in topics {
-            let relatedAssets = DatabaseService.shared.findAssets(withEntityType: .topic, value: topic.value)
+            let relatedAssets = DatabaseService.shared.findAssets(withEntityType: EntityType.topic, value: topic.value)
             for relatedId in relatedAssets where relatedId != assetId {
                 DatabaseService.shared.insertLink(
                     source: assetId,
                     target: relatedId,
-                    type: .sameTopic,
+                    type: RelationshipType.sameTopic,
                     strength: topic.confidence * 0.6
                 )
             }
         }
 
         // Link by shared hashtags
-        let hashtags = entities.filter { $0.type == .hashtag }
+        let hashtags = entities.filter { $0.type == EntityType.hashtag }
         for hashtag in hashtags {
-            let relatedAssets = DatabaseService.shared.findAssets(withEntityType: .hashtag, value: hashtag.value)
+            let relatedAssets = DatabaseService.shared.findAssets(withEntityType: EntityType.hashtag, value: hashtag.value)
             for relatedId in relatedAssets where relatedId != assetId {
                 DatabaseService.shared.insertLink(
                     source: assetId,
                     target: relatedId,
-                    type: .sameTopic,
+                    type: RelationshipType.sameTopic,
                     strength: 0.5
                 )
             }
@@ -56,15 +56,15 @@ final class KnowledgeGraphService {
 
     /// Get all screenshots related to a specific user/author
     func getScreenshots(byAuthor username: String) -> [Asset] {
-        let assetIds = DatabaseService.shared.findAssets(withEntityType: .username, value: username)
+        let assetIds = DatabaseService.shared.findAssets(withEntityType: EntityType.username, value: username)
         return assetIds.compactMap { id in
-            DatabaseService.shared.findAssets(byContentType: .tweet).first { $0.id == id }
+            DatabaseService.shared.findAssets(byContentType: ContentType.tweet).first { $0.id == id }
         }
     }
 
     /// Get all screenshots about a specific topic
     func getScreenshots(byTopic topic: String) -> [Asset] {
-        let assetIds = DatabaseService.shared.findAssets(withEntityType: .topic, value: topic)
+        let assetIds = DatabaseService.shared.findAssets(withEntityType: EntityType.topic, value: topic)
         // Return unique assets
         var seen = Set<Int64>()
         return assetIds.compactMap { id -> Asset? in
@@ -76,9 +76,9 @@ final class KnowledgeGraphService {
 
     /// Get a "brain dump" of all insights from screenshots
     func getInsightsSummary() -> KnowledgeInsights {
-        let topUsernames = DatabaseService.shared.getTopEntities(type: .username, limit: 10)
-        let topTopics = DatabaseService.shared.getTopEntities(type: .topic, limit: 10)
-        let topHashtags = DatabaseService.shared.getTopEntities(type: .hashtag, limit: 10)
+        let topUsernames = DatabaseService.shared.getTopEntities(type: EntityType.username, limit: 10)
+        let topTopics = DatabaseService.shared.getTopEntities(type: EntityType.topic, limit: 10)
+        let topHashtags = DatabaseService.shared.getTopEntities(type: EntityType.hashtag, limit: 10)
         let contentCounts = DatabaseService.shared.getContentTypeCounts()
 
         return KnowledgeInsights(

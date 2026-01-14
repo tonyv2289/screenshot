@@ -131,7 +131,7 @@ final class AIExportService {
     // MARK: - Private Helpers
 
     private func getTopAuthorsWithContent() -> [AuthorSummary] {
-        let topAuthors = DatabaseService.shared.getTopEntities(type: .username, limit: 20)
+        let topAuthors = DatabaseService.shared.getTopEntities(type: EntityType.username, limit: 20)
         return topAuthors.map { author in
             AuthorSummary(
                 username: author.value,
@@ -141,7 +141,7 @@ final class AIExportService {
     }
 
     private func getTopTopicsWithContent() -> [TopicSummary] {
-        let topTopics = DatabaseService.shared.getTopEntities(type: .topic, limit: 20)
+        let topTopics = DatabaseService.shared.getTopEntities(type: EntityType.topic, limit: 20)
         return topTopics.map { topic in
             TopicSummary(
                 name: topic.value,
