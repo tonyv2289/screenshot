@@ -69,8 +69,48 @@ final class DatabaseService {
         );
         """
 
+        // Knowledge graph tables
+        let createEntities = """
+        CREATE TABLE IF NOT EXISTS entities (
+            entity_id INTEGER PRIMARY KEY,
+            asset_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            value TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            metadata TEXT,
+            FOREIGN KEY (asset_id) REFERENCES assets(asset_id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_entities_asset ON entities(asset_id);
+        CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(type);
+        CREATE INDEX IF NOT EXISTS idx_entities_value ON entities(value);
+        """
+
+        let createLinks = """
+        CREATE TABLE IF NOT EXISTS knowledge_links (
+            link_id INTEGER PRIMARY KEY,
+            source_asset_id INTEGER NOT NULL,
+            target_asset_id INTEGER NOT NULL,
+            relationship_type TEXT NOT NULL,
+            strength REAL NOT NULL,
+            FOREIGN KEY (source_asset_id) REFERENCES assets(asset_id) ON DELETE CASCADE,
+            FOREIGN KEY (target_asset_id) REFERENCES assets(asset_id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_links_source ON knowledge_links(source_asset_id);
+        CREATE INDEX IF NOT EXISTS idx_links_target ON knowledge_links(target_asset_id);
+        """
+
+        // Add content_type column to assets if not exists
+        let addContentType = """
+        ALTER TABLE assets ADD COLUMN content_type TEXT DEFAULT 'unknown';
+        """
+
         execute(createAssets)
         execute(createFTS)
+        execute(createEntities)
+        execute(createLinks)
+
+        // Try to add content_type column (will fail silently if exists)
+        execute(addContentType)
     }
 
     private func execute(_ sql: String) {
@@ -286,9 +326,239 @@ final class DatabaseService {
         }
     }
 
+    // MARK: - Knowledge Graph Operations
+
+    /// Insert extracted entities for an asset
+    func insertEntities(_ entities: [ExtractedEntity], forAssetId assetId: Int64) {
+        let sql = "INSERT INTO entities(asset_id, type, value, confidence, metadata) VALUES(?,?,?,?,?);"
+
+        for entity in entities {
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                Loggers.db.error("Failed to prepare entity insert: \(String(cString: sqlite3_errmsg(db)))")
+                continue
+            }
+            defer { sqlite3_finalize(stmt) }
+
+            let metadataJSON = try? JSONEncoder().encode(entity.metadata)
+            let metadataString = metadataJSON.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+
+            sqlite3_bind_int64(stmt, 1, assetId)
+            sqlite3_bind_text(stmt, 2, (entity.type.rawValue as NSString).utf8String, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_text(stmt, 3, (entity.value as NSString).utf8String, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_double(stmt, 4, entity.confidence)
+            sqlite3_bind_text(stmt, 5, (metadataString as NSString).utf8String, -1, SQLITE_TRANSIENT)
+
+            if sqlite3_step(stmt) != SQLITE_DONE {
+                Loggers.db.error("Failed to insert entity: \(String(cString: sqlite3_errmsg(db)))")
+            }
+        }
+    }
+
+    /// Update content type for an asset
+    func updateContentType(_ type: ContentType, forAssetId assetId: Int64) {
+        let sql = "UPDATE assets SET content_type = ? WHERE asset_id = ?"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare updateContentType: \(String(cString: sqlite3_errmsg(db)))")
+            return
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_text(stmt, 1, (type.rawValue as NSString).utf8String, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int64(stmt, 2, assetId)
+
+        if sqlite3_step(stmt) != SQLITE_DONE {
+            Loggers.db.error("Failed to update content type: \(String(cString: sqlite3_errmsg(db)))")
+        }
+    }
+
+    /// Create a knowledge link between two assets
+    func insertLink(source: Int64, target: Int64, type: RelationshipType, strength: Double) {
+        let sql = "INSERT INTO knowledge_links(source_asset_id, target_asset_id, relationship_type, strength) VALUES(?,?,?,?);"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare link insert: \(String(cString: sqlite3_errmsg(db)))")
+            return
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int64(stmt, 1, source)
+        sqlite3_bind_int64(stmt, 2, target)
+        sqlite3_bind_text(stmt, 3, (type.rawValue as NSString).utf8String, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_double(stmt, 4, strength)
+
+        if sqlite3_step(stmt) != SQLITE_DONE {
+            Loggers.db.error("Failed to insert link: \(String(cString: sqlite3_errmsg(db)))")
+        }
+    }
+
+    /// Find assets with a specific entity value (e.g., all tweets from @elonmusk)
+    func findAssets(withEntityType type: EntityType, value: String) -> [Int64] {
+        let sql = "SELECT DISTINCT asset_id FROM entities WHERE type = ? AND value LIKE ?"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare entity search: \(String(cString: sqlite3_errmsg(db)))")
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_text(stmt, 1, (type.rawValue as NSString).utf8String, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, ("%\(value)%" as NSString).utf8String, -1, SQLITE_TRANSIENT)
+
+        var results: [Int64] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            results.append(sqlite3_column_int64(stmt, 0))
+        }
+        return results
+    }
+
+    /// Get all entities for an asset
+    func getEntities(forAssetId assetId: Int64) -> [ExtractedEntity] {
+        let sql = "SELECT type, value, confidence, metadata FROM entities WHERE asset_id = ?"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare getEntities: \(String(cString: sqlite3_errmsg(db)))")
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int64(stmt, 1, assetId)
+
+        var results: [ExtractedEntity] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let typeRaw = String(cString: sqlite3_column_text(stmt, 0))
+            let value = String(cString: sqlite3_column_text(stmt, 1))
+            let confidence = sqlite3_column_double(stmt, 2)
+            let metadataStr = String(cString: sqlite3_column_text(stmt, 3))
+
+            guard let type = EntityType(rawValue: typeRaw) else { continue }
+
+            let metadata: [String: String]
+            if let data = metadataStr.data(using: .utf8),
+               let decoded = try? JSONDecoder().decode([String: String].self, from: data) {
+                metadata = decoded
+            } else {
+                metadata = [:]
+            }
+
+            results.append(ExtractedEntity(type: type, value: value, confidence: confidence, metadata: metadata))
+        }
+        return results
+    }
+
+    /// Get related assets through knowledge links
+    func getRelatedAssets(forAssetId assetId: Int64) -> [(assetId: Int64, type: RelationshipType, strength: Double)] {
+        let sql = """
+            SELECT target_asset_id, relationship_type, strength FROM knowledge_links WHERE source_asset_id = ?
+            UNION
+            SELECT source_asset_id, relationship_type, strength FROM knowledge_links WHERE target_asset_id = ?
+            ORDER BY strength DESC
+        """
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare getRelatedAssets: \(String(cString: sqlite3_errmsg(db)))")
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int64(stmt, 1, assetId)
+        sqlite3_bind_int64(stmt, 2, assetId)
+
+        var results: [(Int64, RelationshipType, Double)] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let targetId = sqlite3_column_int64(stmt, 0)
+            let typeRaw = String(cString: sqlite3_column_text(stmt, 1))
+            let strength = sqlite3_column_double(stmt, 2)
+            if let type = RelationshipType(rawValue: typeRaw) {
+                results.append((targetId, type, strength))
+            }
+        }
+        return results
+    }
+
+    /// Find assets by content type
+    func findAssets(byContentType type: ContentType) -> [Asset] {
+        let sql = """
+            SELECT asset_id, file_path, created_at, width, height, kind, tickers, phash, source, import_batch_id, duplicate_of_asset_id
+            FROM assets WHERE content_type = ? AND duplicate_of_asset_id IS NULL
+            ORDER BY created_at DESC
+            LIMIT \(DatabaseConstants.searchResultsLimit)
+        """
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare content type search: \(String(cString: sqlite3_errmsg(db)))")
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_text(stmt, 1, (type.rawValue as NSString).utf8String, -1, SQLITE_TRANSIENT)
+
+        var results: [Asset] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            results.append(readAssetRow(stmt: stmt))
+        }
+        return results
+    }
+
+    /// Get content type counts for smart collections
+    func getContentTypeCounts() -> [ContentType: Int] {
+        let sql = "SELECT content_type, COUNT(*) FROM assets WHERE duplicate_of_asset_id IS NULL GROUP BY content_type"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare content type counts: \(String(cString: sqlite3_errmsg(db)))")
+            return [:]
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        var counts: [ContentType: Int] = [:]
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let typePtr = sqlite3_column_text(stmt, 0) {
+                let typeRaw = String(cString: typePtr)
+                let count = Int(sqlite3_column_int(stmt, 1))
+                if let type = ContentType(rawValue: typeRaw) {
+                    counts[type] = count
+                }
+            }
+        }
+        return counts
+    }
+
+    /// Get top entities across all screenshots
+    func getTopEntities(type: EntityType, limit: Int = 20) -> [(value: String, count: Int)] {
+        let sql = "SELECT value, COUNT(*) as cnt FROM entities WHERE type = ? GROUP BY value ORDER BY cnt DESC LIMIT ?"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare top entities: \(String(cString: sqlite3_errmsg(db)))")
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_text(stmt, 1, (type.rawValue as NSString).utf8String, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int(stmt, 2, Int32(limit))
+
+        var results: [(String, Int)] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let value = String(cString: sqlite3_column_text(stmt, 0))
+            let count = Int(sqlite3_column_int(stmt, 1))
+            results.append((value, count))
+        }
+        return results
+    }
+
     // MARK: - Data Management
 
     func deleteAllData() {
+        execute("DELETE FROM knowledge_links;")
+        execute("DELETE FROM entities;")
         execute("DELETE FROM ocr_fts;")
         execute("DELETE FROM assets;")
     }

@@ -29,6 +29,12 @@ struct LibraryView: View {
             }
             .navigationTitle("Screenshot Roll")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    NavigationLink(destination: SmartCollectionsView()) {
+                        Image(systemName: "square.stack.3d.up")
+                            .a11yLabel("Smart Collections")
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     PhotosPicker(
                         selection: $pickerItems,

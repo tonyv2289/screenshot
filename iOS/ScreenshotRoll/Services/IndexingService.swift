@@ -10,6 +10,11 @@ enum IndexingService {
         let phash = HashingService.perceptualHash(image)
         let maybeDup = DatabaseService.shared.findPotentialDuplicate(of: phash, hammingThreshold: duplicateHammingThreshold)
 
+        // Knowledge graph: classify content and extract entities
+        let classifier = ContentClassifier.shared
+        let (contentType, _) = classifier.classifyContent(ocrText)
+        let entities = classifier.extractEntities(from: ocrText)
+
         let asset = Asset(
             id: 0,
             filePath: savedURL.path,
@@ -25,8 +30,20 @@ enum IndexingService {
         )
         let tagsText = TaggingService.tagsFor(kind: kind).joined(separator: ",")
         let newId = DatabaseService.shared.insertAsset(asset, ocrText: ocrText, tagsText: tagsText)
-        if newId > 0, let dupOf = maybeDup {
-            DatabaseService.shared.markAsDuplicate(assetId: newId, duplicateOf: dupOf)
+
+        if newId > 0 {
+            // Store content type
+            DatabaseService.shared.updateContentType(contentType, forAssetId: newId)
+
+            // Store extracted entities
+            DatabaseService.shared.insertEntities(entities, forAssetId: newId)
+
+            // Build knowledge links based on shared entities
+            KnowledgeGraphService.shared.buildLinks(forAssetId: newId, entities: entities)
+
+            if let dupOf = maybeDup {
+                DatabaseService.shared.markAsDuplicate(assetId: newId, duplicateOf: dupOf)
+            }
         }
     }
 }
