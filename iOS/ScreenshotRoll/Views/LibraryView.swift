@@ -54,7 +54,7 @@ struct LibraryView: View {
                 }
             }
             .settingsLink()
-            .onChange(of: pickerItems) { _, newItems in
+            .onChange(of: pickerItems) { newItems in
                 Task { await handlePicker(items: newItems) }
             }
             .overlay(alignment: .bottom) {
