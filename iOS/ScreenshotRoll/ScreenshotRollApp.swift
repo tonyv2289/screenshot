@@ -19,11 +19,12 @@ struct ScreenshotRollApp: App {
                 }
                 .sheet(isPresented: Binding(
                     get: { !hasOnboarded },
-                    set: { _ in }
+                    set: { newValue in
+                        if !newValue { hasOnboarded = true }
+                    }
                 )) {
                     OnboardingView()
                         .presentationDetents([.medium])
-                        .onDisappear { hasOnboarded = true }
                 }
         }
     }
