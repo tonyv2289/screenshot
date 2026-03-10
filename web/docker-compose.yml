@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: condo-ledger-postgres
+    environment:
+      POSTGRES_DB: condo_ledger
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - condo_ledger_pg_data:/var/lib/postgresql/data
+
+volumes:
+  condo_ledger_pg_data:
