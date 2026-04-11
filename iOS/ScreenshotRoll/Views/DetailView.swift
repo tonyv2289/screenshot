@@ -15,7 +15,10 @@ struct DetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Picker("Tag", selection: Binding(
                     get: { manualKind ?? asset.kind },
-                    set: { manualKind = $0; /* TODO: persist edit */ }
+                    set: { newKind in
+                        manualKind = newKind
+                        DatabaseService.shared.updateKind(newKind, forAssetId: asset.id)
+                    }
                 )) {
                     ForEach(AssetKind.allCases) { kind in
                         Text(kind.displayName).tag(kind)

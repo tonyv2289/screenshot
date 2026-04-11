@@ -179,15 +179,10 @@ struct LibraryView: View {
         let batchId = UUID().uuidString
         vm.beginImport(totalCount: items.count)
 
-        // Process each image individually to minimize memory usage
         for item in items {
-            autoreleasepool {
-                // Load, process, and release each image before moving to the next
-            }
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 await vm.importSingleImage(image, batchId: batchId)
-                // Image is released here when it goes out of scope
             }
         }
 

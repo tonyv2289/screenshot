@@ -137,7 +137,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, insertAssetSQL, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare insert statement: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare insert statement: \(String(cString: sqlite3_errmsg(self.db)))")
             return -1
         }
         defer { sqlite3_finalize(stmt) }
@@ -159,7 +159,7 @@ final class DatabaseService {
         }
 
         guard sqlite3_step(stmt) == SQLITE_DONE else {
-            Loggers.db.error("Failed to insert asset: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to insert asset: \(String(cString: sqlite3_errmsg(self.db)))")
             return -1
         }
 
@@ -170,7 +170,7 @@ final class DatabaseService {
         var stmt2: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, insertFTS, -1, &stmt2, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare FTS insert: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare FTS insert: \(String(cString: sqlite3_errmsg(self.db)))")
             return rowId // Asset was inserted, FTS failed
         }
         defer { sqlite3_finalize(stmt2) }
@@ -180,7 +180,7 @@ final class DatabaseService {
         sqlite3_bind_int64(stmt2, 3, rowId)
 
         if sqlite3_step(stmt2) != SQLITE_DONE {
-            Loggers.db.error("Failed to insert FTS: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to insert FTS: \(String(cString: sqlite3_errmsg(self.db)))")
         }
 
         return rowId
@@ -248,7 +248,7 @@ final class DatabaseService {
 
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare search: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare search: \(String(cString: sqlite3_errmsg(self.db)))")
             return []
         }
         defer { sqlite3_finalize(stmt) }
@@ -268,7 +268,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare topTickers: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare topTickers: \(String(cString: sqlite3_errmsg(self.db)))")
             return []
         }
         defer { sqlite3_finalize(stmt) }
@@ -292,7 +292,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare duplicate search: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare duplicate search: \(String(cString: sqlite3_errmsg(self.db)))")
             return nil
         }
         defer { sqlite3_finalize(stmt) }
@@ -313,7 +313,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare markAsDuplicate: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare markAsDuplicate: \(String(cString: sqlite3_errmsg(self.db)))")
             return
         }
         defer { sqlite3_finalize(stmt) }
@@ -322,7 +322,7 @@ final class DatabaseService {
         sqlite3_bind_int64(stmt, 2, assetId)
 
         if sqlite3_step(stmt) != SQLITE_DONE {
-            Loggers.db.error("Failed to mark as duplicate: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to mark as duplicate: \(String(cString: sqlite3_errmsg(self.db)))")
         }
     }
 
@@ -335,7 +335,7 @@ final class DatabaseService {
         for entity in entities {
             var stmt: OpaquePointer?
             guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-                Loggers.db.error("Failed to prepare entity insert: \(String(cString: sqlite3_errmsg(db)))")
+                Loggers.db.error("Failed to prepare entity insert: \(String(cString: sqlite3_errmsg(self.db)))")
                 continue
             }
             defer { sqlite3_finalize(stmt) }
@@ -350,7 +350,7 @@ final class DatabaseService {
             sqlite3_bind_text(stmt, 5, (metadataString as NSString).utf8String, -1, SQLITE_TRANSIENT)
 
             if sqlite3_step(stmt) != SQLITE_DONE {
-                Loggers.db.error("Failed to insert entity: \(String(cString: sqlite3_errmsg(db)))")
+                Loggers.db.error("Failed to insert entity: \(String(cString: sqlite3_errmsg(self.db)))")
             }
         }
     }
@@ -361,7 +361,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare updateContentType: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare updateContentType: \(String(cString: sqlite3_errmsg(self.db)))")
             return
         }
         defer { sqlite3_finalize(stmt) }
@@ -370,7 +370,7 @@ final class DatabaseService {
         sqlite3_bind_int64(stmt, 2, assetId)
 
         if sqlite3_step(stmt) != SQLITE_DONE {
-            Loggers.db.error("Failed to update content type: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to update content type: \(String(cString: sqlite3_errmsg(self.db)))")
         }
     }
 
@@ -380,7 +380,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare link insert: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare link insert: \(String(cString: sqlite3_errmsg(self.db)))")
             return
         }
         defer { sqlite3_finalize(stmt) }
@@ -391,7 +391,7 @@ final class DatabaseService {
         sqlite3_bind_double(stmt, 4, strength)
 
         if sqlite3_step(stmt) != SQLITE_DONE {
-            Loggers.db.error("Failed to insert link: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to insert link: \(String(cString: sqlite3_errmsg(self.db)))")
         }
     }
 
@@ -401,7 +401,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare entity search: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare entity search: \(String(cString: sqlite3_errmsg(self.db)))")
             return []
         }
         defer { sqlite3_finalize(stmt) }
@@ -422,7 +422,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare getEntities: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare getEntities: \(String(cString: sqlite3_errmsg(self.db)))")
             return []
         }
         defer { sqlite3_finalize(stmt) }
@@ -462,7 +462,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare getRelatedAssets: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare getRelatedAssets: \(String(cString: sqlite3_errmsg(self.db)))")
             return []
         }
         defer { sqlite3_finalize(stmt) }
@@ -493,7 +493,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare content type search: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare content type search: \(String(cString: sqlite3_errmsg(self.db)))")
             return []
         }
         defer { sqlite3_finalize(stmt) }
@@ -513,7 +513,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare content type counts: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare content type counts: \(String(cString: sqlite3_errmsg(self.db)))")
             return [:]
         }
         defer { sqlite3_finalize(stmt) }
@@ -537,7 +537,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare top entities: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare top entities: \(String(cString: sqlite3_errmsg(self.db)))")
             return []
         }
         defer { sqlite3_finalize(stmt) }
@@ -554,6 +554,41 @@ final class DatabaseService {
         return results
     }
 
+    // MARK: - Asset Lookups & Updates
+
+    func getAsset(byId id: Int64) -> Asset? {
+        let sql = """
+            SELECT asset_id, file_path, created_at, width, height, kind, tickers, phash, source, import_batch_id, duplicate_of_asset_id
+            FROM assets WHERE asset_id = ? LIMIT 1
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare getAsset: \(String(cString: sqlite3_errmsg(self.db)))")
+            return nil
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_int64(stmt, 1, id)
+        if sqlite3_step(stmt) == SQLITE_ROW {
+            return readAssetRow(stmt: stmt)
+        }
+        return nil
+    }
+
+    func updateKind(_ kind: AssetKind, forAssetId assetId: Int64) {
+        let sql = "UPDATE assets SET kind = ? WHERE asset_id = ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare updateKind: \(String(cString: sqlite3_errmsg(self.db)))")
+            return
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, (kind.rawValue as NSString).utf8String, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int64(stmt, 2, assetId)
+        if sqlite3_step(stmt) != SQLITE_DONE {
+            Loggers.db.error("Failed to update kind: \(String(cString: sqlite3_errmsg(self.db)))")
+        }
+    }
+
     // MARK: - Data Management
 
     func deleteAllData() {
@@ -568,7 +603,7 @@ final class DatabaseService {
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            Loggers.db.error("Failed to prepare fetchOCRPreview: \(String(cString: sqlite3_errmsg(db)))")
+            Loggers.db.error("Failed to prepare fetchOCRPreview: \(String(cString: sqlite3_errmsg(self.db)))")
             return nil
         }
         defer { sqlite3_finalize(stmt) }

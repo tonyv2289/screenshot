@@ -1,0 +1,98 @@
+name: ScreenshotRoll
+options:
+  bundleIdPrefix: com.yourcompany
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15"
+  generateEmptyDirectories: true
+  defaultConfig: Debug
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    CODE_SIGN_STYLE: Automatic
+    # Replace with your Apple Developer Team ID before archiving
+    DEVELOPMENT_TEAM: ""
+
+configs:
+  Debug: debug
+  Release: release
+
+targets:
+  ScreenshotRoll:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    info:
+      path: ScreenshotRoll/Info.plist
+      properties:
+        CFBundleDisplayName: Screenshot Roll
+        LSRequiresIPhoneOS: true
+        UIApplicationSupportsIndirectInputEvents: true
+        UILaunchStoryboardName: ""
+        UIRequiredDeviceCapabilities:
+          - arm64
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.yourcompany.screenshotroll.indexing
+    entitlements:
+      path: ScreenshotRoll/ScreenshotRoll.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.yourcompany.screenshotroll
+    sources:
+      - path: ScreenshotRoll
+        excludes:
+          - "Info.plist"
+          - "ScreenshotRoll.entitlements"
+          - "**/*.md"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.screenshotroll
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: 1
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: ShareExtension
+        embed: true
+
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsImageWithMaxCount: 20
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.yourcompany.screenshotroll
+    sources:
+      - path: ShareExtension
+        excludes:
+          - "Info.plist"
+          - "ShareExtension.entitlements"
+      # SharedContainer is needed by the extension
+      - path: ScreenshotRoll/Shared/SharedContainer.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.screenshotroll.ShareExtension
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: 1

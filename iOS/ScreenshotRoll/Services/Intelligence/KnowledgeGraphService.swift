@@ -65,12 +65,11 @@ final class KnowledgeGraphService {
     /// Get all screenshots about a specific topic
     func getScreenshots(byTopic topic: String) -> [Asset] {
         let assetIds = DatabaseService.shared.findAssets(withEntityType: EntityType.topic, value: topic)
-        // Return unique assets
         var seen = Set<Int64>()
         return assetIds.compactMap { id -> Asset? in
             guard !seen.contains(id) else { return nil }
             seen.insert(id)
-            return nil // We'd need a getAsset(byId:) method
+            return DatabaseService.shared.getAsset(byId: id)
         }
     }
 
