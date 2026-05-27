@@ -182,7 +182,7 @@ final class ContentClassifier {
     private func extractEmails(from text: String) -> [ExtractedEntity] {
         detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.link.rawValue)).compactMap { result -> ExtractedEntity? in
             guard let url = result.url, url.scheme?.lowercased() == "mailto" else { return nil }
-            let email = url.resourceSpecifier.removingPercentEncoding ?? url.resourceSpecifier
+            let email = Self.mailtoAddress(from: url)
             return ExtractedEntity(type: .email, value: email)
         }
     }
@@ -284,6 +284,12 @@ final class ContentClassifier {
         guard let detector = try? NSDataDetector(types: types.rawValue) else { return [] }
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return detector.matches(in: text, options: [], range: range)
+    }
+
+    private static func mailtoAddress(from url: URL) -> String {
+        let rawValue = url.absoluteString
+        let stripped = rawValue.hasPrefix("mailto:") ? String(rawValue.dropFirst("mailto:".count)) : rawValue
+        return stripped.removingPercentEncoding ?? stripped
     }
 }
 

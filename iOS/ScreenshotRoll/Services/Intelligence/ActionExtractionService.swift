@@ -55,7 +55,7 @@ enum ActionExtractionService {
             if let url = result.url {
                 switch url.scheme?.lowercased() {
                 case "mailto":
-                    let email = url.resourceSpecifier.removingPercentEncoding ?? url.resourceSpecifier
+                    let email = mailtoAddress(from: url)
                     actions.append(
                         DetectedAction(
                             kind: .email,
@@ -201,6 +201,12 @@ enum ActionExtractionService {
             return host + url.path
         }
         return url.absoluteString
+    }
+
+    private static func mailtoAddress(from url: URL) -> String {
+        let rawValue = url.absoluteString
+        let stripped = rawValue.hasPrefix("mailto:") ? String(rawValue.dropFirst("mailto:".count)) : rawValue
+        return stripped.removingPercentEncoding ?? stripped
     }
 
     private static func deduplicated(_ actions: [DetectedAction]) -> [DetectedAction] {
