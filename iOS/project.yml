@@ -66,6 +66,24 @@ targets:
       - target: ShareExtension
         embed: true
 
+  ScreenshotRollV2:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    info:
+      path: ScreenshotRollV2/Info.plist
+    sources:
+      - path: ScreenshotRollV2
+        excludes:
+          - "Info.plist"
+      - path: ScreenshotRoll/Views/Components/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.screenshotroll.v2
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: 1
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
   ShareExtension:
     type: app-extension
     platform: iOS
@@ -96,3 +114,23 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.screenshotroll.ShareExtension
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: 1
+
+schemes:
+  ScreenshotRoll:
+    build:
+      targets:
+        ScreenshotRoll: all
+        ShareExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  ScreenshotRollV2:
+    build:
+      targets:
+        ScreenshotRollV2: all
+    run:
+      config: Debug
+    archive:
+      config: Release
