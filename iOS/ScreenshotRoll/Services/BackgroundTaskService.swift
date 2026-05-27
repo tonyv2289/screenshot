@@ -2,7 +2,14 @@ import Foundation
 import BackgroundTasks
 
 enum BackgroundTaskService {
-    static let indexingIdentifier = "com.yourcompany.screenshotroll.indexing"
+    private static let taskIdInfoKey = "BGTaskIdentifier"
+    private static let fallbackTaskId = "com.tonyv2289.screenshotroll.indexing"
+
+    static var indexingIdentifier: String {
+        let configuredId = Bundle.main.object(forInfoDictionaryKey: taskIdInfoKey) as? String
+        let trimmed = configuredId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? fallbackTaskId : trimmed
+    }
 
     static func registerBackgroundTasks() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: indexingIdentifier, using: nil) { task in
@@ -19,12 +26,16 @@ enum BackgroundTaskService {
     }
 
     private static func handleIndexing(task: BGProcessingTask) {
-        // For MVP placeholder: nothing long-running yet
+        let workTask = Task {
+            await ShareInboxProcessor.processPending()
+            if !Task.isCancelled {
+                task.setTaskCompleted(success: true)
+            }
+        }
+
         task.expirationHandler = {
+            workTask.cancel()
             task.setTaskCompleted(success: false)
         }
-        // Pretend work done
-        task.setTaskCompleted(success: true)
     }
 }
-

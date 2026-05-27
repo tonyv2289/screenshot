@@ -3,7 +3,10 @@ import PhotosUI
 
 struct LibraryView: View {
     @EnvironmentObject var vm: LibraryViewModel
+    @EnvironmentObject var store: StoreService
     @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var showingPaywall = false
+    @State private var paywallReason = ""
 
     private let grid = [GridItem(.adaptive(minimum: 110), spacing: 8)]
 
@@ -56,6 +59,10 @@ struct LibraryView: View {
             .settingsLink()
             .onChange(of: pickerItems) { newItems in
                 Task { await handlePicker(items: newItems) }
+            }
+            .sheet(isPresented: $showingPaywall) {
+                StorePaywallView(reason: paywallReason)
+                    .environmentObject(store)
             }
             .overlay(alignment: .bottom) {
                 if vm.isImporting {
@@ -152,6 +159,11 @@ struct LibraryView: View {
             Text("Import only what you choose. Works offline.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
+            if !store.hasPremium {
+                Text("Free plan includes up to \(store.freeMaxAssets) screenshots.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
             PhotosPicker(
                 selection: $pickerItems,
                 maxSelectionCount: ImportConstants.maxPhotoPickerItems,
@@ -173,13 +185,25 @@ struct LibraryView: View {
 
     /// Process images one at a time to avoid loading all into memory at once.
     /// This is critical for handling large batches (up to 200 images).
+    @MainActor
     func handlePicker(items: [PhotosPickerItem]) async {
         guard !items.isEmpty else { return }
 
-        let batchId = UUID().uuidString
-        vm.beginImport(totalCount: items.count)
+        let currentCount = DatabaseService.shared.totalAssetCount()
+        let allowedCount = store.allowedImportCount(requested: items.count, currentCount: currentCount)
 
-        for item in items {
+        guard allowedCount > 0 else {
+            paywallReason = "The free plan stores up to \(store.freeMaxAssets) screenshots. Upgrade to keep importing."
+            showingPaywall = true
+            pickerItems.removeAll()
+            return
+        }
+
+        let batchId = UUID().uuidString
+        let allowedItems = Array(items.prefix(allowedCount))
+        vm.beginImport(totalCount: allowedItems.count)
+
+        for item in allowedItems {
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 await vm.importSingleImage(image, batchId: batchId)
@@ -188,6 +212,11 @@ struct LibraryView: View {
 
         vm.endImport()
         pickerItems.removeAll()
+
+        if allowedCount < items.count {
+            paywallReason = "Imported \(allowedCount) screenshots. Upgrade to continue past the free \(store.freeMaxAssets)-screenshot limit."
+            showingPaywall = true
+        }
     }
 }
 

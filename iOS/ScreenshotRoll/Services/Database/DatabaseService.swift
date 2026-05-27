@@ -285,6 +285,21 @@ final class DatabaseService {
         return counts.sorted { $0.value > $1.value }.prefix(limit).map { $0.key }
     }
 
+    func totalAssetCount(includeDuplicates: Bool = false) -> Int {
+        let whereClause = includeDuplicates ? "" : "WHERE duplicate_of_asset_id IS NULL"
+        let sql = "SELECT COUNT(*) FROM assets \(whereClause)"
+        var stmt: OpaquePointer?
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare totalAssetCount: \(String(cString: sqlite3_errmsg(self.db)))")
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return 0 }
+        return Int(sqlite3_column_int(stmt, 0))
+    }
+
     // MARK: - Duplicate Detection
 
     func findPotentialDuplicate(of hash: UInt64, hammingThreshold: Int) -> Int64? {

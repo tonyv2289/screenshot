@@ -1,8 +1,14 @@
 import Foundation
 
 enum SharedContainer {
-    // Replace with your real App Group identifier in Xcode capabilities
-    static let sharedAppGroupId: String = "group.com.yourcompany.screenshotroll"
+    private static let appGroupInfoKey = "AppGroupIdentifier"
+    private static let fallbackAppGroupId = "group.com.tonyv2289.screenshotroll"
+
+    static var sharedAppGroupId: String {
+        let configuredId = Bundle.main.object(forInfoDictionaryKey: appGroupInfoKey) as? String
+        let trimmed = configuredId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? fallbackAppGroupId : trimmed
+    }
 
     static func appGroupURL() -> URL {
         guard let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: sharedAppGroupId) else {
@@ -47,4 +53,3 @@ enum SharedContainer {
         }
     }
 }
-
