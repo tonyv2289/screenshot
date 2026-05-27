@@ -53,6 +53,38 @@ final class LibraryViewModel: ObservableObject {
     func importSingleImage(_ image: UIImage, batchId: String) async {
         do {
             let saved = try ImportService.shared.saveImageToLibrary(image)
+            if DatabaseService.shared.getAsset(byFilePath: saved.savedURL.path) != nil {
+                importCompleted += 1
+                importProgress = Double(importCompleted) / Double(importTotal)
+                return
+            }
+            await IndexingService.processImportedImage(
+                image,
+                source: .picker,
+                importBatchId: batchId,
+                savedURL: saved.savedURL,
+                width: saved.width,
+                height: saved.height
+            )
+        } catch {
+            Loggers.importFlow.error("Import failed: \(error.localizedDescription)")
+        }
+
+        importCompleted += 1
+        importProgress = Double(importCompleted) / Double(importTotal)
+    }
+
+    func importSingleImageData(_ data: Data, batchId: String, preferredExtension: String? = nil) async {
+        do {
+            let saved = try ImportService.shared.saveImageDataToLibrary(data, preferredExtension: preferredExtension)
+            if DatabaseService.shared.getAsset(byFilePath: saved.savedURL.path) != nil {
+                importCompleted += 1
+                importProgress = Double(importCompleted) / Double(importTotal)
+                return
+            }
+            guard let image = ImportService.shared.image(from: saved) else {
+                throw ImportService.ImportError.invalidImageData
+            }
             await IndexingService.processImportedImage(
                 image,
                 source: .picker,

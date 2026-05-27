@@ -147,6 +147,9 @@ final class ContentClassifier {
         entities.append(contentsOf: extractUsernames(from: text))
         entities.append(contentsOf: extractHashtags(from: text))
         entities.append(contentsOf: extractURLs(from: text))
+        entities.append(contentsOf: extractEmails(from: text))
+        entities.append(contentsOf: extractPhoneNumbers(from: text))
+        entities.append(contentsOf: extractAddresses(from: text))
         entities.append(contentsOf: extractNumbers(from: text))
         entities.append(contentsOf: extractDates(from: text))
         entities.append(contentsOf: extractQuotes(from: text))
@@ -173,6 +176,41 @@ final class ContentClassifier {
         let pattern = "https?://[a-zA-Z0-9./\\-_?&=]+"
         return text.matches(for: pattern).map { match in
             ExtractedEntity(type: .url, value: match)
+        }
+    }
+
+    private func extractEmails(from text: String) -> [ExtractedEntity] {
+        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.link.rawValue)).compactMap { result -> ExtractedEntity? in
+            guard let url = result.url, url.scheme?.lowercased() == "mailto" else { return nil }
+            let email = Self.mailtoAddress(from: url)
+            return ExtractedEntity(type: .email, value: email)
+        }
+    }
+
+    private func extractPhoneNumbers(from text: String) -> [ExtractedEntity] {
+        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.phoneNumber.rawValue)).compactMap { result -> ExtractedEntity? in
+            guard let phoneNumber = result.phoneNumber else { return nil }
+            return ExtractedEntity(type: .phone, value: phoneNumber)
+        }
+    }
+
+    private func extractAddresses(from text: String) -> [ExtractedEntity] {
+        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.address.rawValue)).compactMap { result -> ExtractedEntity? in
+            if let components = result.addressComponents {
+                let orderedKeys = [
+                    NSTextCheckingKey.street,
+                    NSTextCheckingKey.city,
+                    NSTextCheckingKey.state,
+                    NSTextCheckingKey.zip,
+                    NSTextCheckingKey.country
+                ]
+                let value = orderedKeys.compactMap { components[$0] }.filter { !$0.isEmpty }.joined(separator: ", ")
+                guard !value.isEmpty else { return nil }
+                return ExtractedEntity(type: .address, value: value)
+            }
+
+            guard let range = Range(result.range, in: text) else { return nil }
+            return ExtractedEntity(type: .address, value: String(text[range]))
         }
     }
 
@@ -239,6 +277,19 @@ final class ContentClassifier {
         }
 
         return entities
+    }
+
+    private func detectorResults(in text: String, types: NSTextCheckingResult.CheckingType) -> [NSTextCheckingResult] {
+        guard !text.isEmpty else { return [] }
+        guard let detector = try? NSDataDetector(types: types.rawValue) else { return [] }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return detector.matches(in: text, options: [], range: range)
+    }
+
+    private static func mailtoAddress(from url: URL) -> String {
+        let rawValue = url.absoluteString
+        let stripped = rawValue.hasPrefix("mailto:") ? String(rawValue.dropFirst("mailto:".count)) : rawValue
+        return stripped.removingPercentEncoding ?? stripped
     }
 }
 

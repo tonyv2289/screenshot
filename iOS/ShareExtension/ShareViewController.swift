@@ -1,37 +1,86 @@
 import UIKit
-import Social
+import UniformTypeIdentifiers
 
-final class ShareViewController: SLComposeServiceViewController {
-    override func isContentValid() -> Bool { true }
+final class ShareViewController: UIViewController {
+    private var didStartSaving = false
 
-    override func didSelectPost() {
-        guard let items = (extensionContext?.inputItems as? [NSExtensionItem]) else {
-            extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !didStartSaving else { return }
+        didStartSaving = true
+        saveIncomingImages()
+    }
+
+    private func saveIncomingImages() {
+        let providers = inputProviders()
+        guard !providers.isEmpty else {
+            complete()
             return
         }
-        let groupInbox = SharedContainer.sharedInboxURL()
-        let providers: [NSItemProvider] = items.compactMap { $0.attachments }.flatMap { $0 }
+
         let group = DispatchGroup()
-        for provider in providers where provider.hasItemConformingToTypeIdentifier("public.image") {
+        for provider in providers {
+            guard let typeIdentifier = imageTypeIdentifier(for: provider) else { continue }
             group.enter()
-            provider.loadItem(forTypeIdentifier: "public.image", options: nil) { item, _ in
+            loadImageData(from: provider, typeIdentifier: typeIdentifier) { data in
                 defer { group.leave() }
-                if let url = item as? URL, let data = try? Data(contentsOf: url) {
-                    let filename = UUID().uuidString + ".jpg"
-                    let dest = groupInbox.appendingPathComponent(filename)
-                    try? data.write(to: dest, options: [.atomic, .completeFileProtection])
-                } else if let image = item as? UIImage, let data = image.jpegData(compressionQuality: 0.95) {
-                    let filename = UUID().uuidString + ".jpg"
-                    let dest = groupInbox.appendingPathComponent(filename)
-                    try? data.write(to: dest, options: [.atomic, .completeFileProtection])
-                }
+                guard let data, !data.isEmpty else { return }
+                try? ScreenshotInboxStore.enqueueImageData(
+                    data,
+                    suggestedName: provider.suggestedName,
+                    typeIdentifier: typeIdentifier,
+                    sourceBundleIdentifier: nil,
+                    preferredExtension: Self.preferredFileExtension(for: typeIdentifier)
+                )
             }
         }
+
         group.notify(queue: .main) {
-            self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+            self.complete()
         }
     }
 
-    override func configurationItems() -> [Any]! { [] }
-}
+    private func inputProviders() -> [NSItemProvider] {
+        guard let items = extensionContext?.inputItems as? [NSExtensionItem] else { return [] }
+        return items.flatMap { $0.attachments ?? [] }
+    }
 
+    private func imageTypeIdentifier(for provider: NSItemProvider) -> String? {
+        provider.registeredTypeIdentifiers.first { identifier in
+            UTType(identifier)?.conforms(to: .image) == true
+        }
+    }
+
+    private func loadImageData(
+        from provider: NSItemProvider,
+        typeIdentifier: String,
+        completion: @escaping (Data?) -> Void
+    ) {
+        provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
+            if let data {
+                completion(data)
+                return
+            }
+
+            provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { item, _ in
+                if let data = item as? Data {
+                    completion(data)
+                } else if let url = item as? URL {
+                    completion(try? Data(contentsOf: url))
+                } else if let image = item as? UIImage {
+                    completion(image.pngData() ?? image.jpegData(compressionQuality: 0.95))
+                } else {
+                    completion(nil)
+                }
+            }
+        }
+    }
+
+    private static func preferredFileExtension(for typeIdentifier: String) -> String? {
+        UTType(typeIdentifier)?.preferredFilenameExtension
+    }
+
+    private func complete() {
+        extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+    }
+}

@@ -1,55 +1,24 @@
 name: ScreenshotRoll
+
 options:
-  bundleIdPrefix: com.yourcompany
-  deploymentTarget:
-    iOS: "16.0"
-  xcodeVersion: "15"
-  generateEmptyDirectories: true
-  defaultConfig: Debug
+  minimumXcodeGenVersion: 2.38.0
+  createIntermediateGroups: true
 
 settings:
   base:
     SWIFT_VERSION: "5.9"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
-    TARGETED_DEVICE_FAMILY: "1,2"
+    TARGETED_DEVICE_FAMILY: "1"
     CODE_SIGN_STYLE: Automatic
-    # Replace with your Apple Developer Team ID before archiving
-    DEVELOPMENT_TEAM: ""
-
-configs:
-  Debug: debug
-  Release: release
+    DEVELOPMENT_TEAM: RPKMKV2TZ6
+    CURRENT_PROJECT_VERSION: 5
+    MARKETING_VERSION: "1.0"
 
 targets:
   ScreenshotRoll:
     type: application
     platform: iOS
     deploymentTarget: "16.0"
-    info:
-      path: ScreenshotRoll/Info.plist
-      properties:
-        CFBundleDisplayName: Screenshot Roll
-        LSRequiresIPhoneOS: true
-        UIApplicationSupportsIndirectInputEvents: true
-        UILaunchStoryboardName: ""
-        UIRequiredDeviceCapabilities:
-          - arm64
-        UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
-        "UISupportedInterfaceOrientations~ipad":
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
-        BGTaskSchedulerPermittedIdentifiers:
-          - com.yourcompany.screenshotroll.indexing
-    entitlements:
-      path: ScreenshotRoll/ScreenshotRoll.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.yourcompany.screenshotroll
     sources:
       - path: ScreenshotRoll
         excludes:
@@ -58,41 +27,64 @@ targets:
           - "**/*.md"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.screenshotroll
-        MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: 1
+        INFOPLIST_FILE: ScreenshotRoll/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.tonyv2289.screenshotroll
+        CODE_SIGN_ENTITLEMENTS: ScreenshotRoll/ScreenshotRoll.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - target: ShareExtension
         embed: true
+      - sdk: libsqlite3.tbd
+
+  ScreenshotRollV2:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ScreenshotRollV2
+        excludes:
+          - "Info.plist"
+      - path: ScreenshotRoll/Views/Components/Assets.xcassets
+      - path: ScreenshotRoll/LaunchScreen.storyboard
+    settings:
+      base:
+        INFOPLIST_FILE: ScreenshotRollV2/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.tonyv2289.screenshotroll.v2
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   ShareExtension:
     type: app-extension
     platform: iOS
     deploymentTarget: "16.0"
-    info:
-      path: ShareExtension/Info.plist
-      properties:
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.share-services
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
-          NSExtensionAttributes:
-            NSExtensionActivationRule:
-              NSExtensionActivationSupportsImageWithMaxCount: 20
-    entitlements:
-      path: ShareExtension/ShareExtension.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.yourcompany.screenshotroll
     sources:
       - path: ShareExtension
         excludes:
           - "Info.plist"
           - "ShareExtension.entitlements"
-      # SharedContainer is needed by the extension
       - path: ScreenshotRoll/Shared/SharedContainer.swift
+      - path: ScreenshotRoll/Shared/ScreenshotInboxStore.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.screenshotroll.ShareExtension
-        MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: 1
+        INFOPLIST_FILE: ShareExtension/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.tonyv2289.screenshotroll.share
+        APPLICATION_EXTENSION_API_ONLY: YES
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements
+schemes:
+  ScreenshotRoll:
+    build:
+      targets:
+        ScreenshotRoll: all
+        ShareExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  ScreenshotRollV2:
+    build:
+      targets:
+        ScreenshotRollV2: all
+    run:
+      config: Debug
+    archive:
+      config: Release

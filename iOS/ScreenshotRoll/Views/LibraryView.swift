@@ -3,7 +3,11 @@ import PhotosUI
 
 struct LibraryView: View {
     @EnvironmentObject var vm: LibraryViewModel
+    @EnvironmentObject var store: StoreService
     @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var showingPaywall = false
+    @State private var paywallReason = ""
+    @State private var shareImportMessage: String?
 
     private let grid = [GridItem(.adaptive(minimum: 110), spacing: 8)]
 
@@ -57,13 +61,24 @@ struct LibraryView: View {
             .onChange(of: pickerItems) { newItems in
                 Task { await handlePicker(items: newItems) }
             }
+            .sheet(isPresented: $showingPaywall) {
+                StorePaywallView(reason: paywallReason)
+                    .environmentObject(store)
+            }
             .overlay(alignment: .bottom) {
                 if vm.isImporting {
                     importProgressView
+                } else if let shareImportMessage {
+                    Text(shareImportMessage)
+                        .font(.footnote.weight(.medium))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding()
                 }
             }
             .onAppear { vm.runSearch() }
-            .task { await ShareInboxProcessor.processPending() }
+            .task { await processSharedInbox() }
         }
     }
 
@@ -152,6 +167,11 @@ struct LibraryView: View {
             Text("Import only what you choose. Works offline.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
+            if !store.hasPremium {
+                Text("Free plan includes up to \(store.freeMaxAssets) screenshots.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
             PhotosPicker(
                 selection: $pickerItems,
                 maxSelectionCount: ImportConstants.maxPhotoPickerItems,
@@ -173,21 +193,63 @@ struct LibraryView: View {
 
     /// Process images one at a time to avoid loading all into memory at once.
     /// This is critical for handling large batches (up to 200 images).
+    @MainActor
     func handlePicker(items: [PhotosPickerItem]) async {
         guard !items.isEmpty else { return }
 
-        let batchId = UUID().uuidString
-        vm.beginImport(totalCount: items.count)
+        let currentCount = DatabaseService.shared.totalAssetCount()
+        let allowedCount = store.allowedImportCount(requested: items.count, currentCount: currentCount)
 
-        for item in items {
-            if let data = try? await item.loadTransferable(type: Data.self),
-               let image = UIImage(data: data) {
-                await vm.importSingleImage(image, batchId: batchId)
+        guard allowedCount > 0 else {
+            paywallReason = "The free plan stores up to \(store.freeMaxAssets) screenshots. Upgrade to keep importing."
+            showingPaywall = true
+            pickerItems.removeAll()
+            return
+        }
+
+        let batchId = UUID().uuidString
+        let allowedItems = Array(items.prefix(allowedCount))
+        vm.beginImport(totalCount: allowedItems.count)
+
+        for item in allowedItems {
+            if let data = try? await item.loadTransferable(type: Data.self) {
+                await vm.importSingleImageData(data, batchId: batchId)
             }
         }
 
         vm.endImport()
         pickerItems.removeAll()
+
+        if allowedCount < items.count {
+            paywallReason = "Imported \(allowedCount) screenshots. Upgrade to continue past the free \(store.freeMaxAssets)-screenshot limit."
+            showingPaywall = true
+        }
+    }
+
+    @MainActor
+    private func processSharedInbox() async {
+        let result = await ShareInboxProcessor.processPending()
+        guard result.didChangeLibrary || result.failedCount > 0 || result.remainingCount > 0 else { return }
+
+        vm.runSearch()
+        var components: [String] = []
+        if result.importedCount > 0 {
+            components.append("Saved \(result.importedCount)")
+        }
+        if result.skippedDuplicateCount > 0 {
+            components.append("Skipped \(result.skippedDuplicateCount) duplicate")
+        }
+        if result.failedCount > 0 {
+            components.append("\(result.failedCount) failed")
+        }
+        if result.remainingCount > 0 {
+            components.append("\(result.remainingCount) waiting")
+        }
+
+        shareImportMessage = components.joined(separator: " · ")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            shareImportMessage = nil
+        }
     }
 }
 

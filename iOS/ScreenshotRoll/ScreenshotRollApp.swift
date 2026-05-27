@@ -4,6 +4,7 @@ import BackgroundTasks
 @main
 struct ScreenshotRollApp: App {
     @StateObject private var libraryViewModel = LibraryViewModel()
+    @StateObject private var storeService = StoreService.shared
     @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
 
     init() {
@@ -14,6 +15,7 @@ struct ScreenshotRollApp: App {
         WindowGroup {
             LibraryView()
                 .environmentObject(libraryViewModel)
+                .environmentObject(storeService)
                 .onAppear {
                     BackgroundTaskService.scheduleIndexingIfNeeded()
                 }
@@ -29,4 +31,3 @@ struct ScreenshotRollApp: App {
         }
     }
 }
-

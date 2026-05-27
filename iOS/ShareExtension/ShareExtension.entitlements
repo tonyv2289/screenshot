@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.yourcompany.screenshotroll</string>
+		<string>group.com.tonyv2289.screenshotroll</string>
 	</array>
 </dict>
 </plist>
