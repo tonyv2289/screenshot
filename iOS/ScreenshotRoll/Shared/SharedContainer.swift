@@ -23,6 +23,12 @@ enum SharedContainer {
         return url
     }
 
+    static func failedInboxURL() -> URL {
+        let url = appGroupURL().appendingPathComponent("FailedInbox", isDirectory: true)
+        ensureDirectory(url)
+        return url
+    }
+
     static func databaseURL() -> URL {
         // Keep DB in app sandbox Application Support by default
         let base = appSupportURL()

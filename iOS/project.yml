@@ -62,15 +62,13 @@ targets:
           - "Info.plist"
           - "ShareExtension.entitlements"
       - path: ScreenshotRoll/Shared/SharedContainer.swift
+      - path: ScreenshotRoll/Shared/ScreenshotInboxStore.swift
     settings:
       base:
         INFOPLIST_FILE: ShareExtension/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.tonyv2289.screenshotroll.share
         APPLICATION_EXTENSION_API_ONLY: YES
         CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements
-    dependencies:
-      - sdk: Social.framework
-
 schemes:
   ScreenshotRoll:
     build:

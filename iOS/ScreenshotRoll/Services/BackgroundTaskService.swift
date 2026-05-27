@@ -27,7 +27,7 @@ enum BackgroundTaskService {
 
     private static func handleIndexing(task: BGProcessingTask) {
         let workTask = Task {
-            await ShareInboxProcessor.processPending()
+            _ = await ShareInboxProcessor.processPending()
             if !Task.isCancelled {
                 task.setTaskCompleted(success: true)
             }

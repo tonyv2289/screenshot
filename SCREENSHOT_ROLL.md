@@ -57,6 +57,7 @@ What is still strategic whitespace:
 - privacy-first paid utility positioning
 
 See `docs/COMPETITIVE_MATRIX.md` for the current landscape.
+See `docs/SAVING_PIPELINE.md` for the capture and save architecture.
 
 ## Must-Win Pillars
 
@@ -66,6 +67,8 @@ See `docs/COMPETITIVE_MATRIX.md` for the current landscape.
 - share extension for the zero-friction save path
 - App Group inbox handoff between extension and app
 - background indexing so the import flow survives app switching
+- stable local library filenames based on image-byte hashes
+- manifest-backed share inbox items so partial writes are not treated as imports
 
 ### 2. Action extraction
 

@@ -589,6 +589,24 @@ final class DatabaseService {
         return nil
     }
 
+    func getAsset(byFilePath filePath: String) -> Asset? {
+        let sql = """
+            SELECT asset_id, file_path, created_at, width, height, kind, tickers, phash, source, import_batch_id, duplicate_of_asset_id
+            FROM assets WHERE file_path = ? LIMIT 1
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Loggers.db.error("Failed to prepare getAsset by file path: \(String(cString: sqlite3_errmsg(self.db)))")
+            return nil
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, (filePath as NSString).utf8String, -1, SQLITE_TRANSIENT)
+        if sqlite3_step(stmt) == SQLITE_ROW {
+            return readAssetRow(stmt: stmt)
+        }
+        return nil
+    }
+
     func updateKind(_ kind: AssetKind, forAssetId assetId: Int64) {
         let sql = "UPDATE assets SET kind = ? WHERE asset_id = ?"
         var stmt: OpaquePointer?
