@@ -182,11 +182,11 @@ enum ActionExtractionService {
     private static func formattedAddress(from result: NSTextCheckingResult) -> String? {
         if let components = result.addressComponents {
             let orderedKeys = [
-                NSTextCheckingKey.street.rawValue,
-                NSTextCheckingKey.city.rawValue,
-                NSTextCheckingKey.state.rawValue,
-                NSTextCheckingKey.zip.rawValue,
-                NSTextCheckingKey.country.rawValue
+                NSTextCheckingKey.street,
+                NSTextCheckingKey.city,
+                NSTextCheckingKey.state,
+                NSTextCheckingKey.zip,
+                NSTextCheckingKey.country
             ]
             let parts = orderedKeys.compactMap { components[$0] }.filter { !$0.isEmpty }
             if !parts.isEmpty {

@@ -180,7 +180,7 @@ final class ContentClassifier {
     }
 
     private func extractEmails(from text: String) -> [ExtractedEntity] {
-        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.link.rawValue)).compactMap { result in
+        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.link.rawValue)).compactMap { result -> ExtractedEntity? in
             guard let url = result.url, url.scheme?.lowercased() == "mailto" else { return nil }
             let email = url.resourceSpecifier.removingPercentEncoding ?? url.resourceSpecifier
             return ExtractedEntity(type: .email, value: email)
@@ -188,21 +188,21 @@ final class ContentClassifier {
     }
 
     private func extractPhoneNumbers(from text: String) -> [ExtractedEntity] {
-        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.phoneNumber.rawValue)).compactMap { result in
+        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.phoneNumber.rawValue)).compactMap { result -> ExtractedEntity? in
             guard let phoneNumber = result.phoneNumber else { return nil }
             return ExtractedEntity(type: .phone, value: phoneNumber)
         }
     }
 
     private func extractAddresses(from text: String) -> [ExtractedEntity] {
-        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.address.rawValue)).compactMap { result in
+        detectorResults(in: text, types: NSTextCheckingResult.CheckingType(rawValue: NSTextCheckingResult.CheckingType.address.rawValue)).compactMap { result -> ExtractedEntity? in
             if let components = result.addressComponents {
                 let orderedKeys = [
-                    NSTextCheckingKey.street.rawValue,
-                    NSTextCheckingKey.city.rawValue,
-                    NSTextCheckingKey.state.rawValue,
-                    NSTextCheckingKey.zip.rawValue,
-                    NSTextCheckingKey.country.rawValue
+                    NSTextCheckingKey.street,
+                    NSTextCheckingKey.city,
+                    NSTextCheckingKey.state,
+                    NSTextCheckingKey.zip,
+                    NSTextCheckingKey.country
                 ]
                 let value = orderedKeys.compactMap { components[$0] }.filter { !$0.isEmpty }.joined(separator: ", ")
                 guard !value.isEmpty else { return nil }
