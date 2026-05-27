@@ -25,11 +25,13 @@
 - Confirm extension App ID: `com.tonyv2289.screenshotroll.share`
 - Confirm App Group: `group.com.tonyv2289.screenshotroll`
 - Confirm Developer Team: `RPKMKV2TZ6`
+- Accept any pending Apple Program License Agreement updates for the team
+- Confirm an `Apple Distribution` certificate exists on the build machine
 - Confirm StoreKit products exist in App Store Connect:
   - `com.tonyv2289.screenshotroll.pro.yearly`
   - `com.tonyv2289.screenshotroll.lifetime`
 - Archive from Xcode
-- Upload to TestFlight
+- Export / upload to TestFlight
 
 ## Metadata
 
