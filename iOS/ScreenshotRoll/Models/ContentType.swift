@@ -62,11 +62,46 @@ enum EntityType: String, Codable {
     case username = "username"      // @handle
     case hashtag = "hashtag"        // #topic
     case url = "url"                // links
+    case email = "email"            // email addresses
+    case phone = "phone"            // phone numbers
+    case address = "address"        // postal addresses / locations
     case date = "date"              // dates mentioned
     case number = "number"          // statistics, prices
     case person = "person"          // names
     case topic = "topic"            // extracted themes
     case quote = "quote"            // quoted text
+
+    var displayName: String {
+        switch self {
+        case .username: return "People"
+        case .hashtag: return "Hashtags"
+        case .url: return "Links"
+        case .email: return "Emails"
+        case .phone: return "Phone Numbers"
+        case .address: return "Places"
+        case .date: return "Dates"
+        case .number: return "Numbers"
+        case .person: return "Names"
+        case .topic: return "Topics"
+        case .quote: return "Quotes"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .username: return "person.circle"
+        case .hashtag: return "number"
+        case .url: return "link"
+        case .email: return "envelope"
+        case .phone: return "phone"
+        case .address: return "map"
+        case .date: return "calendar"
+        case .number: return "number.square"
+        case .person: return "person"
+        case .topic: return "tag"
+        case .quote: return "quote.opening"
+        }
+    }
 }
 
 /// Represents a connection between two assets in the knowledge graph
@@ -94,4 +129,16 @@ enum RelationshipType: String, Codable {
     case reply = "reply"
     case thread = "thread"
     case relatedConcept = "related_concept"
+
+    var displayName: String {
+        switch self {
+        case .sameTopic: return "Shared topic"
+        case .sameAuthor: return "Same author"
+        case .sameSource: return "Same source"
+        case .similar: return "Similar"
+        case .reply: return "Reply"
+        case .thread: return "Thread"
+        case .relatedConcept: return "Related concept"
+        }
+    }
 }

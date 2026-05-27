@@ -20,6 +20,13 @@ The intended product is:
 - built for screenshot retrieval, not general photo storage
 - differentiated by intelligence, not just by a grid view
 
+The product must explicitly win on four pillars:
+
+- iPhone-native capture
+- action extraction
+- context and memory
+- paid utility trust
+
 Differentiation may include:
 
 - OCR-powered retrieval
@@ -27,7 +34,57 @@ Differentiation may include:
 - ticker extraction / finance-aware parsing
 - duplicate handling
 - frictionless ingestion from the iPhone share sheet
+- immediate actions from detected content
+- related-screenshot memory, not just standalone search hits
 - paid utility positioning instead of ad-supported commodity software
+
+## Competitive Reality
+
+As of 2026-05-27, Screenshot Roll is entering a real and increasingly crowded category.
+
+What is already common in the market:
+
+- OCR
+- categorization
+- plain-language search
+- generic "AI screenshot organizer" messaging
+
+What is still strategic whitespace:
+
+- the strongest iPhone-native capture loop
+- action extraction that turns screenshots into next steps
+- context and memory surfaces that connect screenshots together
+- privacy-first paid utility positioning
+
+See `docs/COMPETITIVE_MATRIX.md` for the current landscape.
+
+## Must-Win Pillars
+
+### 1. iPhone-native capture
+
+- `PhotosPicker` for library backfill
+- share extension for the zero-friction save path
+- App Group inbox handoff between extension and app
+- background indexing so the import flow survives app switching
+
+### 2. Action extraction
+
+- surface links, emails, phone numbers, places, dates, and tickers where present
+- allow the user to act from the screenshot, not only search it later
+- prefer reliable native actions over vague AI summaries
+
+### 3. Context and memory
+
+- cluster by topic, author, and entity
+- connect related screenshots
+- expose memory exports / context for assistants
+- make the user feel the app remembers, not just stores
+
+### 4. Paid utility trust
+
+- on-device first
+- privacy made legible in product copy and behavior
+- pricing that aligns with a utility, not growth-hacked content software
 
 ## What v2 Is For
 
@@ -43,6 +100,8 @@ Its current scope is intentionally narrow:
 - search OCR text, tags, and categories
 - inspect and relabel items
 - flag exact duplicates
+
+`v2` may simplify implementation, but it is not allowed to erase the four pillars above.
 
 ## What v2 Is Not Allowed To Decide Unilaterally
 
@@ -73,12 +132,13 @@ Silence does not count as a decision.
 | OCR search | Present | Present | Keep |
 | Manual screenshot import | Present | Present | Keep |
 | Paywall / paid tiers | Present | Not implemented | Defer pending product decision |
-| Share extension | Present | Not implemented | Defer pending moat decision |
-| Background indexing | Present in partial form | Not implemented | Defer pending UX validation |
-| Knowledge graph / topic recall | Present | Not implemented | Defer pending differentiation decision |
-| Ticker extraction | Present | Not implemented | Defer pending target-user decision |
+| Share extension | Present | Not implemented | Restore before replacement; core moat |
+| Background indexing | Present in partial form | Not implemented | Restore before replacement; core UX |
+| Knowledge graph / topic recall | Present | Not implemented | Restore or replace with equivalent memory surface |
+| Ticker extraction | Present | Not implemented | Keep for finance-aware differentiation unless explicitly rejected |
 | Perceptual dedup | Present | Replaced by exact-hash flagging only | Defer; compare quality vs complexity |
-| “Brain” surface / advanced recall UI | Present | Not implemented | Defer pending product review |
+| “Brain” surface / advanced recall UI | Present | Not implemented | Restore in some form before replacement |
+| Native action extraction | Partial | Not implemented | Must become first-class, not hidden implementation detail |
 
 ## Replacement Criteria
 
@@ -87,8 +147,9 @@ Silence does not count as a decision.
 1. It builds in full Xcode, not just via syntax parsing.
 2. It runs on simulator or device without startup regressions.
 3. Import, OCR, search, and detail flows work end-to-end.
-4. The omitted capabilities above have explicit decisions.
-5. The team agrees whether `v2` is:
+4. Share-extension capture, background indexing, action extraction, and memory/context flows work end-to-end.
+5. The omitted capabilities above have explicit decisions.
+6. The team agrees whether `v2` is:
    - the new shipping app
    - a stripped core to extend
    - or just a reference implementation
